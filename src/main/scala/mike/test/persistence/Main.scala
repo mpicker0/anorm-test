@@ -128,7 +128,6 @@ object Main {
   def joinExample2(implicit connection: Connection) = {
     println("-- joinExample2 -----")
     import anorm.SqlParser.str
-    case class UserWithBook(name: String, bookTitle: String)
 
     // This is the same as mike.test.persistence.User; putting the case class and companion object together in this
     // file so it's more obvious
@@ -138,6 +137,9 @@ object Main {
                             from user u left join read_book rb on u.id = rb.user_id
                               left join book b on rb.book_id = b.id
                             where u.name = {username}"""
+      val readBooksAllUsersSql = """select u.name as username, b.title as booktitle
+                            from user u left join read_book rb on u.id = rb.user_id
+                              left join book b on rb.book_id = b.id"""
 
       val withBooksParser: ResultSetParser[Option[User2]] = {
         val userAndTitlesParser = (str("username") ~ str("booktitle").?).*
@@ -145,6 +147,17 @@ object Main {
           userAndTitles.headOption map { case username ~ _ =>
             User2(username, userAndTitles flatMap { case _ ~ title => title })
           }
+        }
+      }
+
+      val withBooksParserAllUsers: ResultSetParser[Seq[User2]] = {
+        val userAndTitlesParser = (str("username") ~ str("booktitle").?).*
+        userAndTitlesParser map { allUsersAndTitles =>
+          allUsersAndTitles.groupBy(_._1).flatMap { case (_, userAndTitles) =>
+            userAndTitles.headOption map { case username ~ _ =>
+              User2(username, userAndTitles flatMap { case _ ~ title => title })
+            }
+          }.toSeq
         }
       }
     }
@@ -156,6 +169,12 @@ object Main {
         println(s"user: ${ub.name}, books: ${ub.readBooks}")
       }
     }
+
+    // Similar to the above, but do it in a single query
+    val user2s: Seq[User2] =
+      SQL(User2.readBooksAllUsersSql)
+        .as(User2.withBooksParserAllUsers)
+    println(s"All users: ${user2s}")
   }
 
   def main(args: Array[String]) {
