@@ -45,11 +45,19 @@ object Main {
                                 book_id integer not null)
         """.stripMargin
     ).execute()
+
+    // Another multi-insert example; this one is dynamic
+    val wantedBooks = Seq(
+      Map("user_id" -> 1, "book_id" -> 1),
+      Map("user_id" -> 1, "book_id" -> 2),
+      Map("user_id" -> 1, "book_id" -> 3),
+      Map("user_id" -> 3, "book_id" -> 2)
+    )
+    val namedParamsList: Seq[Seq[NamedParameter]] = wantedBooks.map(x => x.map(y => NamedParameter(y._1, y._2)).toList)
+    // BatchSql is varargs; the syntax is a little unfortunate.  We must pass the first item, then the rest of the items
     BatchSql("insert into read_book(user_id, book_id) values({user_id}, {book_id})",
-      Seq[NamedParameter]("user_id" -> 1, "book_id" -> 1),
-      Seq[NamedParameter]("user_id" -> 1, "book_id" -> 2),
-      Seq[NamedParameter]("user_id" -> 1, "book_id" -> 3),
-      Seq[NamedParameter]("user_id" -> 3, "book_id" -> 2)
+      namedParamsList.head,
+      namedParamsList.tail:_*
     ).execute()
   }
 
