@@ -1,5 +1,8 @@
 package mike.test.persistence.testing
 
+// Note: anorm.~ is different from the implicit ~ inside RowParser.  Make
+// sure to import it here, or there will be difficult-to-troubleshoot errors
+// in the case matches below!
 import anorm.{~, ResultSetParser}
 import anorm.SqlParser.str
 
